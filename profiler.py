@@ -71,20 +71,26 @@ class OSINTProfiler:
                 "status": "Error"
             }
 
-    async def scan(self, first: str, last: str):
-        usernames = self.generate_usernames(first, last)
+    async def scan(self, first: str = None, last: str = None, username: str = None):
+        if username:
+            usernames = [username.strip()]
+        elif first and last:
+            usernames = self.generate_usernames(first, last)
+        else:
+            return []
+            
         results = []
         
         async with httpx.AsyncClient() as client:
             tasks = []
             for name, (template, indicator, value) in self.platforms.items():
-                for username in usernames:
-                    tasks.append(self.check_platform(client, name, username, template, indicator, value))
+                for u in usernames:
+                    tasks.append(self.check_platform(client, name, u, template, indicator, value))
             
             all_results = await asyncio.gather(*tasks)
             
             # Filter to only keep found profiles (or errors)
-            # grouped by platform to avoid showing 5 different "Not Found" for one site
+            # grouped by platform to avoid showing multiple results for the same site if multiple username variations match
             summary = {}
             for res in all_results:
                 plat = res["platform"]

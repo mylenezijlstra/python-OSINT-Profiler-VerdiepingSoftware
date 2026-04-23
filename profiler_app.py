@@ -49,15 +49,26 @@ def main():
     st.title("🔍 OSINT Profiler")
     st.markdown("### Digital Identity Mapping Engine")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        first_name = st.text_input("First Name", placeholder="e.g. John")
-    with col2:
-        last_name = st.text_input("Last Name", placeholder="e.g. Doe")
+    search_mode = st.radio("Search Mode", ["By Name", "By Username"], horizontal=True)
+    
+    first_name = None
+    last_name = None
+    direct_username = None
+    
+    if search_mode == "By Name":
+        col1, col2 = st.columns(2)
+        with col1:
+            first_name = st.text_input("First Name", placeholder="e.g. John")
+        with col2:
+            last_name = st.text_input("Last Name", placeholder="e.g. Doe")
+    else:
+        direct_username = st.text_input("Username", placeholder="e.g. johndoe123")
         
     if st.button("INITIATE SCAN"):
-        if not first_name or not last_name:
+        if search_mode == "By Name" and (not first_name or not last_name):
             st.error("Please enter both names.")
+        elif search_mode == "By Username" and not direct_username:
+            st.error("Please enter a username.")
         else:
             with st.spinner("Scanning Global Networks..."):
                 # Initialize profiler
@@ -66,7 +77,11 @@ def main():
                 # Run the scan asynchronously
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                results = loop.run_until_complete(profiler.scan(first_name, last_name))
+                
+                if search_mode == "By Name":
+                    results = loop.run_until_complete(profiler.scan(first=first_name, last=last_name))
+                else:
+                    results = loop.run_until_complete(profiler.scan(username=direct_username))
                 
                 # Display Results
                 st.markdown("---")
