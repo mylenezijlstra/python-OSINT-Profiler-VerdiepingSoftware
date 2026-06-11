@@ -7,7 +7,7 @@ import pandas as pd
 # Set page config for a premium feel
 st.set_page_config(
     page_title="OSINT Profiler",
-    page_icon="🔍",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -46,7 +46,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def main():
-    st.title("🔍 OSINT Profiler")
+    st.title(" OSINT Profiler")
     st.markdown("### Digital Identity Mapping Engine")
     
     search_mode = st.radio("Search Mode", ["By Name", "By Username"], horizontal=True)
@@ -85,7 +85,7 @@ def main():
                 
                 # Display Results
                 st.markdown("---")
-                st.subheader("🌐 Found Profiles")
+                st.subheader("Found Profiles")
 
                 # Build Facebook and LinkedIn links based on search mode
                 if search_mode == "By Name":
@@ -120,7 +120,7 @@ def main():
 
                 # Google Search button at the bottom
                 st.markdown("---")
-                st.link_button("🔎 Search on Google", google_url)
+                st.link_button("Search on Google", google_url)
 
 if __name__ == "__main__":
     main()
