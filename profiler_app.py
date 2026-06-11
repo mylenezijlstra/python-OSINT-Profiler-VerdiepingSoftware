@@ -86,37 +86,41 @@ def main():
                 # Display Results
                 st.markdown("---")
                 st.subheader("🌐 Found Profiles")
-                
-                found = [r for r in results if r["status"] == "Found"]
-                not_found = [r for r in results if r["status"] == "Not Found"]
-                
-                if found:
-                    cols = st.columns(3)
-                    for idx, res in enumerate(found):
-                        with cols[idx % 3]:
-                            st.markdown(f"""
-                                <div class="profile-card">
-                                    <h4>{res['platform']}</h4>
-                                    <p>@{res['username']}</p>
-                                    <a href="{res['url']}" target="_blank" style="color: #00f2ff; text-decoration: none; font-weight: bold;">View Profile →</a>
-                                </div>
-                            """, unsafe_allow_html=True)
+
+                # Build Facebook and LinkedIn links based on search mode
+                if search_mode == "By Name":
+                    label = f"{first_name} {last_name}"
+                    fb_url = f"https://www.facebook.com/search/people/?q={first_name}%20{last_name}"
+                    li_url = f"https://www.linkedin.com/search/results/all/?keywords={first_name}%20{last_name}"
+                    google_url = f"https://www.google.com/search?q=%22{first_name}+{last_name}%22"
                 else:
-                    st.info("No direct profile matches found via common username variations.")
-                
-                # Deep Search Links
-                st.subheader("⛓️ Deep Reconnaissance Links")
-                search_links = [
-                    ("Google Search", f"https://www.google.com/search?q=%22{first_name}+{last_name}%22"),
-                    ("LinkedIn", f"https://www.linkedin.com/search/results/all/?keywords={first_name}%20{last_name}"),
-                    ("Facebook", f"https://www.facebook.com/search/people/?q={first_name}%20{last_name}")
-                ]
-                
-                l_col1, l_col2, l_col3 = st.columns(3)
-                cols = [l_col1, l_col2, l_col3]
-                for i, (name, url) in enumerate(search_links):
-                    with cols[i]:
-                        st.link_button(f"Search on {name}", url)
+                    label = direct_username
+                    fb_url = f"https://www.facebook.com/{direct_username}"
+                    li_url = f"https://www.linkedin.com/in/{direct_username}"
+                    google_url = f"https://www.google.com/search?q=%22{direct_username}%22"
+
+                # Build combined card list: FB + LI always present, then other found platforms
+                all_cards = [
+                    {"platform": "Facebook", "username": label, "url": fb_url},
+                    {"platform": "LinkedIn", "username": label, "url": li_url},
+                ] + [r for r in results if r["status"] == "Found" and r["platform"] not in ("Facebook", "LinkedIn")]
+
+                cols = st.columns(3)
+                for idx, card in enumerate(all_cards):
+                    if idx > 0 and idx % 3 == 0:
+                        cols = st.columns(3)
+                    with cols[idx % 3]:
+                        st.markdown(f"""
+                            <div class="profile-card">
+                                <h4>{card['platform']}</h4>
+                                <p>@{card['username']}</p>
+                                <a href="{card['url']}" target="_blank" style="color: #00f2ff; text-decoration: none; font-weight: bold;">View Profile →</a>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                # Google Search button at the bottom
+                st.markdown("---")
+                st.link_button("🔎 Search on Google", google_url)
 
 if __name__ == "__main__":
     main()

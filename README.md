@@ -2,6 +2,9 @@
 
 A Python-based OSINT profiling tool developed for Verdieping Software, focused on gathering, analyzing, and structuring publicly available intelligence data.
 
+# trello 
+https://trello.com/b/5PaWx7qK/verdieping-software
+
 ## Hoe runnen
 
 ### Vereisten

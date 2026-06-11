@@ -7,12 +7,13 @@ class OSINTProfiler:
         # Platform templates: {name: (url_template, success_indicator_type, success_value)}
         # success_indicator_type: 'status' (http code) or 'text' (search for text in body)
         self.platforms = {
+            "Facebook": ("https://www.facebook.com/{}", "status", 200),
+            "LinkedIn": ("https://www.linkedin.com/in/{}", "status", 200),
             "GitHub": ("https://github.com/{}", "status", 200),
             "Twitter (X)": ("https://twitter.com/{}", "status", 200),
             "Instagram": ("https://www.instagram.com/{}/", "status", 200),
             "Reddit": ("https://www.reddit.com/user/{}", "status", 200),
             "Pinterest": ("https://www.pinterest.com/{}/", "status", 200),
-            "LinkedIn": ("https://www.linkedin.com/in/{}", "status", 200),
             "TikTok": ("https://www.tiktok.com/@{}", "status", 200),
             "Snapchat": ("https://www.snapchat.com/add/{}", "status", 200),
             "Steam": ("https://steamcommunity.com/id/{}", "status", 200),
