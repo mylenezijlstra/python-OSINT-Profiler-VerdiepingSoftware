@@ -13,7 +13,7 @@ https://trello.com/b/5PaWx7qK/verdieping-software
 - De volgende Python packages:
 
 ```bash
-pip install streamlit httpx pandas
+pip install streamlit httpx pandas cryptography
 ```
 
 ### Starten
@@ -35,3 +35,10 @@ Na het starten opent de app automatisch in je browser, of ga zelf naar:
 ```
 http://localhost:8501
 ```
+
+## Beveiliging & Privacy (Nieuw)
+
+De applicatie slaat profielen veilig op om de privacy van gezochte personen te garanderen:
+1. **Toegangscontrole (Master Password)**: Bij de eerste opstart wordt er gevraagd om een Master Password in te stellen. Dit wachtwoord beveiligt de toegang tot de scanner en historie.
+2. **AES-256 Data Encryptie**: Alle opgeslagen profielgegevens en platformkoppelingen worden lokaal versleuteld in de SQLite database (`profiles.db`). De sleutel wordt bij het inloggen in-memory afgeleid van het Master Password via PBKDF2. Offline is de database onleesbaar zonder het juiste wachtwoord.
+
