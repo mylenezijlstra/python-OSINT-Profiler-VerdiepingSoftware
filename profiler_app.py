@@ -8,7 +8,7 @@ import security
 # Set page config for a premium feel
 st.set_page_config(
     page_title="OSINT Profiler",
-    page_icon="🔍",
+    page_icon="app_icon.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -47,7 +47,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def show_scanner():
-    st.subheader("🔍 Scan Profile")
+    st.subheader("Scan Profile")
     
     search_mode = st.radio("Search Mode", ["By Name", "By Username"], horizontal=True)
     
@@ -113,7 +113,7 @@ def show_scanner():
         with col_header:
             st.subheader(f"Results for: {st.session_state.last_scan_query}")
         with col_save:
-            if st.button("💾 SAVE PROFILE"):
+            if st.button("SAVE PROFILE"):
                 security.save_profile(
                     search_mode=st.session_state.last_scan_mode,
                     search_query=st.session_state.last_scan_query,
@@ -144,7 +144,7 @@ def show_scanner():
         st.link_button("Search on Google", st.session_state.last_scan_google_url)
 
 def show_saved_profiles():
-    st.subheader("📋 Saved Profiles")
+    st.subheader("Saved Profiles")
     st.markdown("All data in this dashboard is encrypted at rest and decrypted in memory only.")
     
     profiles = security.get_saved_profiles(st.session_state.encryption_key)
@@ -169,7 +169,7 @@ def show_saved_profiles():
             st.markdown(f"### Profile: **{profile['search_query']}**")
             st.caption(f"Search Mode: {profile['search_mode']} | Saved: {profile['created_at']}")
         with col_del:
-            if st.button("🗑️ DELETE PROFILE"):
+            if st.button("DELETE PROFILE"):
                 security.delete_saved_profile(profile['id'])
                 st.success("Profile deleted successfully.")
                 st.rerun()
@@ -188,9 +188,35 @@ def show_saved_profiles():
                         <a href="{card['url']}" target="_blank" style="color: #00f2ff; text-decoration: none; font-weight: bold;">View Profile →</a>
                     </div>
                 """, unsafe_allow_html=True)
+def show_settings():
+    st.subheader("System Settings")
+    st.markdown("Update your master password. All previously saved profiles will be automatically re-encrypted with the new key.")
+    
+    with st.form("change_password_form"):
+        current_password = st.text_input("Current Master Password", type="password")
+        new_password = st.text_input("New Master Password", type="password")
+        confirm_password = st.text_input("Confirm New Master Password", type="password")
+        submitted = st.form_submit_button("UPDATE MASTER PASSWORD")
+        
+        if submitted:
+            if not current_password or not new_password:
+                st.error("All password fields are required.")
+            elif new_password != confirm_password:
+                st.error("New passwords do not match.")
+            else:
+                old_key = security.verify_password(current_password)
+                if not old_key:
+                    st.error("Incorrect current master password.")
+                else:
+                    try:
+                        new_key = security.change_master_password(old_key, new_password)
+                        st.session_state.encryption_key = new_key
+                        st.success("Master password successfully changed! All saved profiles have been re-encrypted.")
+                    except Exception as e:
+                        st.error(f"Error changing password: {e}")
 
 def main():
-    st.title("🛡️ OSINT Profiler Hub")
+    st.title("OSINT Profiler Hub")
     
     # Initialize SQLite database schema
     security.init_db()
@@ -242,17 +268,41 @@ def main():
                     st.rerun()
                 else:
                     st.error("Incorrect Master Password.")
+                    
+        st.markdown("---")
+        with st.expander("Forgot Master Password?"):
+            st.warning("**Crucial Security Warning:** Because all search profiles are encrypted with your master password, resetting it will **permanently delete all saved profiles**. This action cannot be undone.")
+            
+            with st.form("reset_form"):
+                new_password = st.text_input("New Master Password", type="password", help="Use a strong password.")
+                confirm_password = st.text_input("Confirm New Master Password", type="password")
+                understand = st.checkbox("I understand that all my saved profiles will be permanently deleted.")
+                reset_submitted = st.form_submit_button("WIPE DATABASE & RESET PASSWORD")
+                
+                if reset_submitted:
+                    if not new_password:
+                        st.error("New password cannot be empty.")
+                    elif new_password != confirm_password:
+                        st.error("Passwords do not match.")
+                    elif not understand:
+                        st.error("You must check the box to confirm you understand the data loss.")
+                    else:
+                        key = security.reset_database_and_set_password(new_password)
+                        st.session_state.authenticated = True
+                        st.session_state.encryption_key = key
+                        st.success("System reset complete. A new master password has been configured.")
+                        st.rerun()
         return
 
     # --- Authenticated App View ---
-    st.sidebar.title("🔐 Secure Session")
+    st.sidebar.title("Secure Session")
     
     # Navigation
-    menu = st.sidebar.radio("Navigation", ["🔍 Profile Scanner", "📋 Saved Profiles"])
+    menu = st.sidebar.radio("Navigation", ["Profile Scanner", "Saved Profiles", "Settings"])
     
     # Logout action
     st.sidebar.markdown("---")
-    if st.sidebar.button("🔒 LOCK / LOGOUT"):
+    if st.sidebar.button("LOCK / LOGOUT"):
         st.session_state.authenticated = False
         st.session_state.encryption_key = None
         # Clean scan buffers
@@ -263,10 +313,12 @@ def main():
         st.rerun()
         
     # Render selected view
-    if menu == "🔍 Profile Scanner":
+    if menu == "Profile Scanner":
         show_scanner()
-    elif menu == "📋 Saved Profiles":
+    elif menu == "Saved Profiles":
         show_saved_profiles()
+    elif menu == "Settings":
+        show_settings()
 
 if __name__ == "__main__":
     main()

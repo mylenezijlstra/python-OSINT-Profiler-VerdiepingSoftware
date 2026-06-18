@@ -197,3 +197,71 @@ def delete_saved_profile(profile_id: int, db_path: str = "profiles.db") -> None:
     cursor.execute("DELETE FROM saved_profiles WHERE id = ?", (profile_id,))
     conn.commit()
     conn.close()
+
+def reset_database_and_set_password(new_password: str, db_path: str = "profiles.db") -> bytes:
+    """Wipe all saved profiles and set a new master password."""
+    conn = get_db_connection(db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM saved_profiles")
+    conn.commit()
+    conn.close()
+    
+    return set_master_password(new_password, db_path)
+
+def change_master_password(old_key: bytes, new_password: str, db_path: str = "profiles.db") -> bytes:
+    """Change the master password and re-encrypt all existing profiles atomically."""
+    # 1. Retrieve all saved profiles
+    conn = get_db_connection(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, search_query_encrypted, results_encrypted FROM saved_profiles")
+    rows = cursor.fetchall()
+    
+    # Decrypt everything first
+    decrypted_data = []
+    for row in rows:
+        decrypted_query = decrypt_data(row["search_query_encrypted"], old_key)
+        decrypted_results_raw = decrypt_data(row["results_encrypted"], old_key)
+        decrypted_data.append((row["id"], decrypted_query, decrypted_results_raw))
+        
+    # Generate new salt and key
+    salt = os.urandom(16)
+    password_hash = hashlib.pbkdf2_hmac(
+        "sha256",
+        new_password.encode("utf-8"),
+        salt,
+        iterations=100000,
+        dklen=32
+    )
+    salt_hex = salt.hex()
+    hash_hex = password_hash.hex()
+    new_key = derive_key(new_password, salt)
+    
+    # 2. Perform all database updates atomically inside a transaction
+    try:
+        cursor.execute("BEGIN TRANSACTION")
+        
+        # Update metadata
+        cursor.execute("INSERT OR REPLACE INTO db_metadata (key, value) VALUES ('password_salt', ?)", (salt_hex,))
+        cursor.execute("INSERT OR REPLACE INTO db_metadata (key, value) VALUES ('password_hash', ?)", (hash_hex,))
+        
+        # Re-encrypt profiles
+        for profile_id, query, results_raw in decrypted_data:
+            new_query_enc = encrypt_data(query, new_key)
+            new_results_enc = encrypt_data(results_raw, new_key)
+            cursor.execute(
+                """
+                UPDATE saved_profiles
+                SET search_query_encrypted = ?, results_encrypted = ?
+                WHERE id = ?
+                """,
+                (new_query_enc, new_results_enc, profile_id)
+            )
+            
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+        
+    return new_key
